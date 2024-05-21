@@ -637,6 +637,7 @@ final class Templates {
 
     var anyJSON: String {
         """
+        @dynamicMemberLookup
         \(access)enum AnyJSON: Equatable, Codable {
             case string(String)
             case number(Double)
@@ -644,7 +645,48 @@ final class Templates {
             case array([AnyJSON])
             case bool(Bool)
 
-            var value: Any {
+            \(access)subscript(index: Int) -> AnyJSON? {
+              if let arr = arrayValue {
+                return index < arr.count ? arr[index] : nil
+              }
+              return nil
+            }
+        
+            \(access)subscript(key: String) -> AnyJSON? {
+              if case .object(let dict) = self {
+                return dict[key]
+              }
+              return nil
+            }
+
+            \(access)subscript(dynamicMember member: String) -> AnyJSON? {
+              if case .object(let dict) = self {
+                  return dict[member]
+              }
+              return nil
+            }
+        
+            \(access)var stringValue: String? {
+              return value as? String
+            }
+        
+            \(access)var numberValue: Double? {
+              return value as? Double
+            }
+        
+            \(access)var boolValue: Bool? {
+              return value as? Bool
+            }
+            
+            \(access)var objectValue: [String: AnyJSON]? {
+              return value as? [String: AnyJSON]
+            }
+        
+            \(access)var arrayValue: [AnyJSON]? {
+              return value as? [AnyJSON]
+            }
+        
+            \(access)var value: Any {
                 switch self {
                 case .string(let string): return string
                 case .number(let double): return double
