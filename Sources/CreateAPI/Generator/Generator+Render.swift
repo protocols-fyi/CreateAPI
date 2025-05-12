@@ -28,7 +28,8 @@ extension Generator {
 
         let type = try resolveGeneratedType(for: decl)
         let isReadOnly = !options.entities.mutableProperties.contains(type.isStruct ? .structs : .classes)
-
+        let isClass = type.isClass
+        
         var contents: [String] = []
         switch decl.type {
         case .object, .allOf, .anyOf:
@@ -57,11 +58,11 @@ extension Generator {
                         contents.append(keys)
                     }
                     if decl.protocols.isDecodable, properties.contains(where: { $0.defaultValue != nil }) {
-                        contents.append(templates.initFromDecoder(properties: properties, isUsingCodingKeys: true))
+                        contents.append(templates.initFromDecoder(properties: properties, isUsingCodingKeys: true, isClass: isClass))
                     }
                 } else {
                     if decl.protocols.isDecodable, !properties.isEmpty, options.entities.alwaysIncludeDecodableImplementation {
-                        contents.append(templates.initFromDecoder(properties: properties, isUsingCodingKeys: false))
+                        contents.append(templates.initFromDecoder(properties: properties, isUsingCodingKeys: false, isClass: isClass))
                     }
                     if decl.protocols.isEncodable, !properties.isEmpty, options.entities.alwaysIncludeEncodableImplementation {
                         contents.append(templates.encode(properties: properties))
@@ -69,7 +70,7 @@ extension Generator {
                 }
             case .anyOf:
                 if decl.protocols.isDecodable {
-                    contents.append(templates.initFromDecoderAnyOf(properties: properties))
+                    contents.append(templates.initFromDecoderAnyOf(properties: properties, isClass: isClass))
                 }
                 if decl.protocols.isEncodable {
                     contents.append(templates.encodeAnyOf(properties: properties))
@@ -85,7 +86,7 @@ extension Generator {
                     }
                 }.joined(separator: "\n")
                 if decl.protocols.isDecodable {
-                    contents.append(templates.initFromDecoder(contents: decoderContents, needsValues: needsValues, isUsingCodingKeys: false))
+                    contents.append(templates.initFromDecoder(contents: decoderContents, needsValues: needsValues, isUsingCodingKeys: false, isClass: isClass))
                 }
                 if decl.protocols.isEncodable {
                     contents.append(templates.encode(properties: properties))
@@ -93,9 +94,9 @@ extension Generator {
             case .oneOf:
                 if decl.protocols.isDecodable {
                     if let discriminator = decl.discriminator {
-                        contents.append(templates.initFromDecoderOneOfWithDiscriminator(properties: properties, discriminator: discriminator))
+                        contents.append(templates.initFromDecoderOneOfWithDiscriminator(properties: properties, discriminator: discriminator, isClass: isClass))
                     } else {
-                        contents.append(templates.initFromDecoderOneOf(properties: properties))
+                        contents.append(templates.initFromDecoderOneOf(properties: properties, isClass: isClass))
                     }
                 }
                 if decl.protocols.isEncodable {
@@ -136,6 +137,26 @@ extension Generator {
         var isStruct: Bool {
             guard case .struct = self else { return false }
             return true
+        }
+        
+        var isClass: Bool {
+            switch self {
+            case .enumOneOf:
+                return false
+            case .struct:
+                return false
+            case .class(let isFinal):
+                return isFinal == false
+            }
+        }
+        
+        var isFinalClass: Bool {
+            switch self {
+            case .enumOneOf, .struct:
+                return false
+            case .class(let isFinal):
+                return isFinal == true
+            }
         }
     }
 

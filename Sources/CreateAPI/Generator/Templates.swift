@@ -259,21 +259,22 @@ final class Templates {
         "self.\(property.name.accessor) = try \(property.type)(from: decoder)"
     }
 
-    func initFromDecoder(properties: [Property], isUsingCodingKeys: Bool) -> String {
-        initFromDecoder(contents: decode(properties: properties, isUsingCodingKeys: isUsingCodingKeys), isUsingCodingKeys: isUsingCodingKeys)
+    func initFromDecoder(properties: [Property], isUsingCodingKeys: Bool, isClass: Bool) -> String {
+        initFromDecoder(contents: decode(properties: properties, isUsingCodingKeys: isUsingCodingKeys), isUsingCodingKeys: isUsingCodingKeys, isClass: isClass)
     }
 
-    func initFromDecoder(contents: String, needsValues: Bool = true, isUsingCodingKeys: Bool) -> String {
+    func initFromDecoder(contents: String, needsValues: Bool = true, isUsingCodingKeys: Bool, isClass: Bool) -> String {
         let codingKeys = isUsingCodingKeys ? "CodingKeys.self" : "StringCodingKey.self"
         let values = needsValues ? "let values = try decoder.container(keyedBy: \(codingKeys))\n" : ""
+        let requiredKeyword = isClass ? "required " : ""
         return """
-        \(access)init(from decoder: Decoder) throws {
+        \(requiredKeyword)\(access)init(from decoder: Decoder) throws {
         \((values + contents).indented)
         }
         """
     }
 
-    func initFromDecoderAnyOf(properties: [Property]) -> String {
+    func initFromDecoderAnyOf(properties: [Property], isClass: Bool) -> String {
         let contents = properties.map {
             let defaultValue = self.defaultValue(for: $0)
             if defaultValue.isEmpty {
@@ -282,15 +283,16 @@ final class Templates {
                 return "self.\($0.name.accessor) = (try? container.decode(\($0.type).self))\(defaultValue)"
             }
         }.joined(separator: "\n")
+        let requiredKeyword = isClass ? "required " : ""
         return """
-        \(access)init(from decoder: Decoder) throws {
+        \(requiredKeyword)\(access)init(from decoder: Decoder) throws {
             let container = try decoder.singleValueContainer()
         \(contents.indented)
         }
         """
     }
 
-    func initFromDecoderOneOf(properties: [Property]) -> String {
+    func initFromDecoderOneOf(properties: [Property], isClass: Bool) -> String {
         var statements = ""
         for property in properties {
             statements += """
@@ -310,16 +312,16 @@ final class Templates {
             )
         }
         """
-
+        let requiredKeyword = isClass ? "required " : ""
         return """
-        \(access)init(from decoder: Decoder) throws {
+        \(requiredKeyword)\(access)init(from decoder: Decoder) throws {
             let container = try decoder.singleValueContainer()
         \(statements.indented)
         }
         """
     }
 
-    func initFromDecoderOneOfWithDiscriminator(properties: [Property], discriminator: Discriminator) -> String {
+    func initFromDecoderOneOfWithDiscriminator(properties: [Property], discriminator: Discriminator, isClass: Bool) -> String {
         var expectedValues: [String] = []
         var statements = ""
         for property in properties {
@@ -343,9 +345,10 @@ final class Templates {
             )
         }
         """#
+        let requiredKeyword = isClass ? "required " : ""
 
         return """
-        \(access)init(from decoder: Decoder) throws {
+        \(requiredKeyword)\(access)init(from decoder: Decoder) throws {
 
             struct Discriminator: Decodable {
                 let \(discriminator.propertyName): String
