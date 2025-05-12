@@ -88,9 +88,11 @@ public struct ConfigOptions: ParsableConfiguration {
 
     /// Available access controls
     public enum Access: String, Codable {
-        case `internal`, `public`
+        case `internal`, `public`, `open`
     }
 
+    @Option public var classAccess: Access = .open
+    
     /// Access level modifier for all generated declarations
     /// - `public`
     /// - `internal`

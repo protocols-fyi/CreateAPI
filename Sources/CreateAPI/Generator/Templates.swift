@@ -12,6 +12,11 @@ final class Templates {
         return options.access.rawValue + " "
     }
 
+    var classAccess: String {
+        guard options.classAccess != .internal else { return ""}
+        return options.classAccess.rawValue
+    }
+    
     init(options: GenerateOptions) {
         self.options = options
     }
@@ -43,7 +48,7 @@ final class Templates {
 
     func `class`(name: TypeName, isFinal: Bool, contents: [String], protocols: Protocols) -> String {
         let type = isFinal ? "final class" : "class"
-        let access = options.access == .internal ? "" : options.access.rawValue
+        let access = classAccess
         let lhs = [access, type, name.rawValue].filter { !$0.isEmpty }
         let rhs = ([options.entities.baseClass] + protocols.sorted()).compactMap { $0 }
         return declaration(lhs: lhs, rhs: rhs, contents: contents)
